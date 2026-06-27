@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Frota Pirahy · Lançamentos</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.1.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --bg:#F4F1EA;
+    --surface:#FFFFFF;
+    --ink:#1F2A22;
+    --ink-soft:#5B6B5F;
+    --line:#E1DCCC;
+    --brand:#3C5A41;
+    --brand-dark:#274030;
+    --accent:#C97A3D;
+    --accent-soft:#F3E3D2;
+    --danger:#B3493A;
+    --danger-soft:#F6E3DE;
+    --success:#3C6B4A;
+    --success-soft:#E2EEE3;
+    --radius:14px;
+    --font-display:'Source Serif Pro', Georgia, serif;
+    --font-body:'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    font-family:var(--font-body);
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #app{
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--bg);
+    display:flex;
+    flex-direction:column;
+  }
+
+  header.topbar{
+    padding:20px 20px 16px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    border-bottom:1px solid var(--line);
+    background:var(--bg);
+    position:sticky;
+    top:0;
+    z-index:10;
+  }
+  .logo-mark{
+    width:40px;height:40px;border-radius:10px;
+    background:var(--brand);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .logo-mark i{color:#fff;font-size:20px;}
+  .topbar-text h1{
+    font-family:var(--font-display);
+    font-size:18px;
+    font-weight:600;
+    margin:0;
+    line-height:1.2;
+    color:var(--brand-dark);
+  }
+  .topbar-text p{
+    margin:2px 0 0;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+
+  main{
+    flex:1;
+    padding:20px;
+    padding-bottom:40px;
+  }
+
+  /* Driver picker (simple session identity) */
+  .driver-strip{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:14px 16px;
+    margin-bottom:20px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .driver-avatar{
+    width:38px;height:38px;border-radius:50%;
+    background:var(--accent-soft);
+    color:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:600;font-size:14px;
+    flex-shrink:0;
+  }
+  .driver-info{flex:1; min-width:0;}
+  .driver-info p{margin:0;}
+  .driver-info .name{font-size:14px;font-weight:600;color:var(--ink);}
+  .driver-info .hint{font-size:12px;color:var(--ink-soft);}
+  .driver-edit{
+    border:none;background:none;color:var(--brand);
+    font-size:12px;font-weight:600;font-family:var(--font-body);
+    padding:6px 10px;cursor:pointer;
+  }
+
+  /* Mode switch (2 large tappable tiles) */
+  .mode-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-bottom:24px;
+  }
+  .mode-tile{
+    background:var(--surface);
+    border:1.5px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px 14px;
+    text-align:left;
+    cursor:pointer;
+    transition:border-color .15s ease, transform .1s ease;
+    font-family:var(--font-body);
+  }
+  .mode-tile:active{transform:scale(0.98);}
+  .mode-tile.active{
+    border-color:var(--brand);
+    background:#EFF4EF;
+  }
+  .mode-tile .icon-wrap{
+    width:34px;height:34px;border-radius:9px;
+    background:var(--accent-soft);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:10px;
+  }
+  .mode-tile.active .icon-wrap{background:var(--brand);}
+  .mode-tile .icon-wrap i{font-size:18px;color:var(--accent);}
+  .mode-tile.active .icon-wrap i{color:#fff;}
+  .mode-tile .label{font-size:14px;font-weight:600;color:var(--ink);display:block;}
+  .mode-tile .sub{font-size:11.5px;color:var(--ink-soft);display:block;margin-top:2px;}
+
+  /* Form card */
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-family:var(--font-display);
+    font-size:16px;
+    font-weight:600;
+    margin:0 0 4px;
+    color:var(--brand-dark);
+  }
+  .card .card-sub{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:0 0 18px;
+    line-height:1.5;
+  }
+
+  .field{margin-bottom:16px;}
+  .field label{
+    display:block;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink);
+    margin-bottom:6px;
+  }
+  .field .req{color:var(--danger); margin-left:2px;}
+  .field input[type=text],
+  .field input[type=number],
+  .field input[type=date],
+  .field select,
+  .field textarea{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:15px;
+    font-family:var(--font-body);
+    color:var(--ink);
+    background:#FBFAF7;
+    appearance:none;
+  }
+  .field textarea{resize:vertical; min-height:64px;}
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none;
+    border-color:var(--brand);
+    box-shadow:0 0 0 3px rgba(60,90,65,0.12);
+  }
+  .field .currency-wrap{position:relative;}
+  .field .currency-wrap span{
+    position:absolute;left:14px;top:50%;transform:translateY(-50%);
+    color:var(--ink-soft); font-size:15px;
+  }
+  .field .currency-wrap input{padding-left:34px;}
+  .select-wrap{position:relative;}
+  .select-wrap i{
+    position:absolute;right:14px;top:50%;transform:translateY(-50%);
+    color:var(--ink-soft); font-size:16px; pointer-events:none;
+  }
+
+  /* Photo upload tile */
+  .photo-field label{margin-bottom:8px;}
+  .photo-tile{
+    border:1.5px dashed var(--line);
+    border-radius:12px;
+    padding:18px;
+    text-align:center;
+    cursor:pointer;
+    background:#FBFAF7;
+    transition:border-color .15s ease;
+  }
+  .photo-tile.has-file{
+    border-style:solid;
+    border-color:var(--success);
+    background:var(--success-soft);
+  }
+  .photo-tile i{font-size:22px; color:var(--ink-soft); display:block; margin-bottom:6px;}
+  .photo-tile.has-file i{color:var(--success);}
+  .photo-tile .ptxt{font-size:13px; color:var(--ink-soft); font-weight:500;}
+  .photo-tile.has-file .ptxt{color:var(--success);}
+  .photo-tile input{display:none;}
+  .photo-preview{
+    margin-top:10px;
+    max-height:140px;
+    border-radius:8px;
+    overflow:hidden;
+    display:none;
+  }
+  .photo-preview img{width:100%;display:block;object-fit:cover;}
+
+  /* Submit button */
+  .submit-btn{
+    width:100%;
+    border:none;
+    border-radius:12px;
+    background:var(--brand);
+    color:#fff;
+    font-family:var(--font-body);
+    font-size:15px;
+    font-weight:600;
+    padding:16px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    transition:background .15s ease, transform .1s ease;
+  }
+  .submit-btn:active{transform:scale(0.98);}
+  .submit-btn:disabled{
+    background:#9BA89E;
+    cursor:not-allowed;
+  }
+  .submit-btn i{font-size:18px;}
+
+  .hint-box{
+    font-size:12px;
+    color:var(--ink-soft);
+    background:#EFEAE0;
+    border-radius:10px;
+    padding:10px 12px;
+    margin-top:14px;
+    line-height:1.5;
+    display:flex;
+    gap:8px;
+  }
+  .hint-box i{flex-shrink:0; margin-top:1px; color:var(--accent);}
+
+  /* Status / toast overlay */
+  .status-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(31,42,34,0.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    padding:24px;
+  }
+  .status-overlay.show{display:flex;}
+  .status-card{
+    background:var(--surface);
+    border-radius:18px;
+    padding:32px 24px;
+    text-align:center;
+    max-width:340px;
+    width:100%;
+  }
+  .status-icon{
+    width:56px;height:56px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 16px;
+  }
+  .status-icon.loading{background:var(--accent-soft);}
+  .status-icon.ok{background:var(--success-soft);}
+  .status-icon.err{background:var(--danger-soft);}
+  .status-icon i{font-size:26px;}
+  .status-icon.loading i{color:var(--accent);}
+  .status-icon.ok i{color:var(--success);}
+  .status-icon.err i{color:var(--danger);}
+  .status-card h3{
+    font-family:var(--font-display);
+    font-size:17px;
+    margin:0 0 6px;
+    color:var(--ink);
+  }
+  .status-card p{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin:0 0 18px;
+    line-height:1.5;
+  }
+  .status-card button{
+    border:none;
+    background:var(--brand);
+    color:#fff;
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:14px;
+    border-radius:10px;
+    padding:11px 20px;
+    cursor:pointer;
+  }
+  .spin{
+    animation:spin 1s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .field-error{
+    border-color:var(--danger) !important;
+    box-shadow:0 0 0 3px rgba(179,73,58,0.12) !important;
+  }
+  .error-msg{
+    font-size:11.5px;
+    color:var(--danger);
+    margin-top:5px;
+    display:none;
+  }
+  .error-msg.show{display:block;}
+
+  footer.foot{
+    text-align:center;
+    padding:18px 20px 28px;
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="topbar">
+    <div class="logo-mark"><i class="ti ti-truck"></i></div>
+    <div class="topbar-text">
+      <h1>Frota Pirahy</h1>
+      <p>Lançamento de manutenção</p>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="driver-strip" id="driverStrip">
+      <div class="driver-avatar" id="driverAvatar">--</div>
+      <div class="driver-info">
+        <p class="name" id="driverNameDisplay">Identifique-se</p>
+        <p class="hint" id="driverHint">Toque em editar para informar seu nome e placa</p>
+      </div>
+      <button class="driver-edit" id="driverEditBtn">Editar</button>
+    </div>
+
+    <div class="mode-grid">
+      <button class="mode-tile active" id="tileOrcamento" type="button">
+        <div class="icon-wrap"><i class="ti ti-file-invoice"></i></div>
+        <span class="label">Orçamento</span>
+        <span class="sub">Antes do serviço</span>
+      </button>
+      <button class="mode-tile" id="tilePosServico" type="button">
+        <div class="icon-wrap"><i class="ti ti-receipt"></i></div>
+        <span class="label">Pós-serviço</span>
+        <span class="sub">Nota fiscal e de serviço</span>
+      </button>
+    </div>
+
+    <!-- FORM: ORÇAMENTO -->
+    <form class="card" id="formOrcamento" novalidate>
+      <h2>Registrar orçamento</h2>
+      <p class="card-sub">Preencha ao receber o orçamento do fornecedor, antes da manutenção ser feita.</p>
+
+      <div class="field">
+        <label>Placa do veículo<span class="req">*</span></label>
+        <div class="select-wrap">
+          <select id="orc_placa" required>
+            <option value="" disabled selected>Selecione a placa</option>
+          </select>
+          <i class="ti ti-chevron-down"></i>
+        </div>
+        <p class="error-msg">Selecione a placa do veículo.</p>
+      </div>
+
+      <div class="field">
+        <label>Filial<span class="req">*</span></label>
+        <div class="select-wrap">
+          <select id="orc_filial" required>
+            <option value="" disabled selected>Selecione a filial</option>
+          </select>
+          <i class="ti ti-chevron-down"></i>
+        </div>
+        <p class="error-msg">Selecione a filial.</p>
+      </div>
+
+      <div class="field">
+        <label>Tipo de manutenção<span class="req">*</span></label>
+        <div class="select-wrap">
+          <select id="orc_tipo" required>
+            <option value="" disabled selected>Selecione o tipo</option>
+          </select>
+          <i class="ti ti-chevron-down"></i>
+        </div>
+        <p class="error-msg">Selecione o tipo de manutenção.</p>
+      </div>
+
+      <div class="field">
+        <label>Fornecedor<span class="req">*</span></label>
+        <div class="select-wrap">
+          <select id="orc_fornecedor" required>
+            <option value="" disabled selected>Selecione o fornecedor</option>
+          </select>
+          <i class="ti ti-chevron-down"></i>
+        </div>
+        <p class="error-msg">Selecione o fornecedor.</p>
+      </div>
+
+      <div class="field">
+        <label>Número do orçamento<span class="req">*</span></label>
+        <input type="text" id="orc_numero" placeholder="Ex: ORC-0001" required>
+        <p class="error-msg">Informe um número para identificar este orçamento.</p>
+      </div>
+
+      <div class="field">
+        <label>Valor do orçamento<span class="req">*</span></label>
+        <div class="currency-wrap">
+          <span>R$</span>
+          <input type="number" id="orc_valor" inputmode="decimal" step="0.01" min="0" placeholder="0,00" required>
+        </div>
+        <p class="error-msg">Informe o valor orçado.</p>
+      </div>
+
+      <div class="field">
+        <label>Data prevista do serviço<span class="req">*</span></label>
+        <input type="date" id="orc_data" required>
+        <p class="error-msg">Informe a data prevista.</p>
+      </div>
+
+      <div class="field photo-field">
+        <label>Foto do orçamento<span class="req">*</span></label>
+        <div class="photo-tile" id="orc_foto_tile">
+          <i class="ti ti-camera"></i>
+          <span class="ptxt">Tocar para fotografar ou anexar</span>
+          <input type="file" id="orc_foto" accept="image/*,.pdf" capture="environment">
+        </div>
+        <div class="photo-preview" id="orc_foto_preview"><img id="orc_foto_img"></div>
+        <p class="error-msg">Anexe uma foto ou PDF do orçamento.</p>
+      </div>
+
+      <div class="field">
+        <label>Observações</label>
+        <textarea id="orc_obs" placeholder="Detalhes adicionais sobre o serviço, peças, urgência..."></textarea>
+      </div>
+
+      <button type="submit" class="submit-btn">
+        <i class="ti ti-send"></i> Enviar orçamento
+      </button>
+
+      <div class="hint-box">
+        <i class="ti ti-info-circle"></i>
+        <span>Depois que o serviço for concluído, volte aqui e use a aba "Pós-serviço" com o mesmo número de orçamento para enviar a nota fiscal.</span>
+      </div>
+    </form>
+
+    <!-- FORM: PÓS-SERVIÇO -->
+    <form class="card" id="formPosServico" novalidate style="display:none;">
+      <h2>Registrar pós-serviço</h2>
+      <p class="card-sub">Preencha depois que o serviço for concluído, com a nota fiscal e nota de serviço em mãos.</p>
+
+      <div class="field">
+        <label>Número do orçamento<span class="req">*</span></label>
+        <input type="text" id="pos_numero" placeholder="Mesmo número usado no orçamento" required>
+        <p class="error-msg">Informe o número do orçamento original.</p>
+      </div>
+
+      <div class="field">
+        <label>Placa do veículo<span class="req">*</span></label>
+        <div class="select-wrap">
+          <select id="pos_placa" required>
+            <option value="" disabled selected>Selecione a placa</option>
+          </select>
+          <i class="ti ti-chevron-down"></i>
+        </div>
+        <p class="error-msg">Selecione a placa do veículo.</p>
+      </div>
+
+      <div class="field">
+        <label>Data da conclusão<span class="req">*</span></label>
+        <input type="date" id="pos_data" required>
+        <p class="error-msg">Informe a data de conclusão.</p>
+      </div>
+
+      <div class="field">
+        <label>Valor final cobrado<span class="req">*</span></label>
+        <div class="currency-wrap">
+          <span>R$</span>
+          <input type="number" id="pos_valor" inputmode="decimal" step="0.01" min="0" placeholder="0,00" required>
+        </div>
+        <p class="error-msg">Informe o valor final cobrado.</p>
+      </div>
+
+      <div class="field photo-field">
+        <label>Foto da nota fiscal<span class="req">*</span></label>
+        <div class="photo-tile" id="pos_nf_tile">
+          <i class="ti ti-camera"></i>
+          <span class="ptxt">Tocar para fotografar ou anexar</span>
+          <input type="file" id="pos_nf" accept="image/*,.pdf" capture="environment">
+        </div>
+        <div class="photo-preview" id="pos_nf_preview"><img id="pos_nf_img"></div>
+        <p class="error-msg">Anexe a foto ou PDF da nota fiscal.</p>
+      </div>
+
+      <div class="field photo-field">
+        <label>Foto da nota de serviço<span class="req">*</span></label>
+        <div class="photo-tile" id="pos_ns_tile">
+          <i class="ti ti-camera"></i>
+          <span class="ptxt">Tocar para fotografar ou anexar</span>
+          <input type="file" id="pos_ns" accept="image/*,.pdf" capture="environment">
+        </div>
+        <div class="photo-preview" id="pos_ns_preview"><img id="pos_ns_img"></div>
+        <p class="error-msg">Anexe a foto ou PDF da nota de serviço.</p>
+      </div>
+
+      <div class="field">
+        <label>Observações</label>
+        <textarea id="pos_obs" placeholder="Serviço adicional não previsto, atraso, etc."></textarea>
+      </div>
+
+      <button type="submit" class="submit-btn">
+        <i class="ti ti-send"></i> Enviar pós-serviço
+      </button>
+    </form>
+
+  </main>
+
+  <footer class="foot">Pirahy Alimentos · Gestão de Frota</footer>
+</div>
+
+<div class="status-overlay" id="statusOverlay">
+  <div class="status-card">
+    <div class="status-icon loading" id="statusIcon"><i class="ti ti-loader-2 spin"></i></div>
+    <h3 id="statusTitle">Enviando...</h3>
+    <p id="statusMsg">Aguarde um instante.</p>
+    <button id="statusBtn" style="display:none;">Fechar</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — troque pela URL do seu Apps Script (Etapa 4 do guia)
+   ============================================================ */
+const SCRIPT_URL = "COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT";
+
+const LISTAS = {
+  placas: ["AAA0A11","BBB1B22","CCC2C33","DDD3D44","EEE4E55"],
+  filiais: ["SB-Filial","SB-Matriz","São Paulo","Minas Gerais","Rio Grande do Sul","Paraná"],
+  fornecedores: ["Fornecedor A","Fornecedor B","Fornecedor C"],
+  tipos: ["Preventiva","Corretiva","Pneus","Elétrica","Funilaria","Outros"]
+};
+
+function fillSelect(id, options){
+  const sel = document.getElementById(id);
+  options.forEach(opt=>{
+    const o = document.createElement("option");
+    o.value = opt; o.textContent = opt;
+    sel.appendChild(o);
+  });
+}
+fillSelect("orc_placa", LISTAS.placas);
+fillSelect("orc_filial", LISTAS.filiais);
+fillSelect("orc_tipo", LISTAS.tipos);
+fillSelect("orc_fornecedor", LISTAS.fornecedores);
+fillSelect("pos_placa", LISTAS.placas);
+
+/* ---------- Driver identity (stored in memory for this session) ---------- */
+let driver = { name: "", placaPadrao: "" };
+
+function initials(name){
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if(parts.length === 0) return "--";
+  if(parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+  return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+}
+
+function renderDriver(){
+  const nameEl = document.getElementById("driverNameDisplay");
+  const hintEl = document.getElementById("driverHint");
+  const avatarEl = document.getElementById("driverAvatar");
+  if(driver.name){
+    nameEl.textContent = driver.name;
+    hintEl.textContent = driver.placaPadrao ? ("Veículo padrão: " + driver.placaPadrao) : "Sem veículo padrão definido";
+    avatarEl.textContent = initials(driver.name);
+  } else {
+    nameEl.textContent = "Identifique-se";
+    hintEl.textContent = "Toque em editar para informar seu nome";
+    avatarEl.textContent = "--";
+  }
+}
+
+document.getElementById("driverEditBtn").addEventListener("click", ()=>{
+  const name = prompt("Seu nome completo:", driver.name || "");
+  if(name === null) return;
+  driver.name = name.trim();
+  renderDriver();
+});
+
+renderDriver();
+
+/* ---------- Mode switch ---------- */
+const tileOrc = document.getElementById("tileOrcamento");
+const tilePos = document.getElementById("tilePosServico");
+const formOrc = document.getElementById("formOrcamento");
+const formPos = document.getElementById("formPosServico");
+
+tileOrc.addEventListener("click", ()=>{
+  tileOrc.classList.add("active"); tilePos.classList.remove("active");
+  formOrc.style.display = "block"; formPos.style.display = "none";
+});
+tilePos.addEventListener("click", ()=>{
+  tilePos.classList.add("active"); tileOrc.classList.remove("active");
+  formPos.style.display = "block"; formOrc.style.display = "none";
+});
+
+/* ---------- Photo tile handling ---------- */
+function wirePhotoTile(tileId, inputId, previewId, imgId){
+  const tile = document.getElementById(tileId);
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  const img = document.getElementById(imgId);
+  tile.addEventListener("click", ()=> input.click());
+  input.addEventListener("change", ()=>{
+    const file = input.files[0];
+    if(!file) return;
+    tile.classList.add("has-file");
+    tile.querySelector(".ptxt").textContent = file.name.length > 28 ? file.name.slice(0,25)+"..." : file.name;
+    tile.querySelector("i").className = "ti ti-circle-check";
+    if(file.type.startsWith("image/")){
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target.result; preview.style.display = "block"; };
+      reader.readAsDataURL(file);
+    } else {
+      preview.style.display = "none";
+    }
+  });
+}
+wirePhotoTile("orc_foto_tile","orc_foto","orc_foto_preview","orc_foto_img");
+wirePhotoTile("pos_nf_tile","pos_nf","pos_nf_preview","pos_nf_img");
+wirePhotoTile("pos_ns_tile","pos_ns","pos_ns_preview","pos_ns_img");
+
+/* ---------- Validation helpers ---------- */
+function markError(el, show){
+  const wrap = el.closest(".field") || el.closest(".photo-field");
+  const msg = wrap ? wrap.querySelector(".error-msg") : null;
+  if(show){
+    el.classList.add("field-error");
+    if(msg) msg.classList.add("show");
+  } else {
+    el.classList.remove("field-error");
+    if(msg) msg.classList.remove("show");
+  }
+}
+
+function fileToBase64(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------- Status overlay ---------- */
+const overlay = document.getElementById("statusOverlay");
+const statusIcon = document.getElementById("statusIcon");
+const statusTitle = document.getElementById("statusTitle");
+const statusMsg = document.getElementById("statusMsg");
+const statusBtn = document.getElementById("statusBtn");
+
+function showLoading(msg){
+  overlay.classList.add("show");
+  statusIcon.className = "status-icon loading";
+  statusIcon.innerHTML = '<i class="ti ti-loader-2 spin"></i>';
+  statusTitle.textContent = "Enviando...";
+  statusMsg.textContent = msg;
+  statusBtn.style.display = "none";
+}
+function showSuccess(title, msg){
+  statusIcon.className = "status-icon ok";
+  statusIcon.innerHTML = '<i class="ti ti-circle-check"></i>';
+  statusTitle.textContent = title;
+  statusMsg.textContent = msg;
+  statusBtn.style.display = "inline-block";
+}
+function showError(msg){
+  statusIcon.className = "status-icon err";
+  statusIcon.innerHTML = '<i class="ti ti-alert-triangle"></i>';
+  statusTitle.textContent = "Não foi possível enviar";
+  statusMsg.textContent = msg;
+  statusBtn.style.display = "inline-block";
+}
+statusBtn.addEventListener("click", ()=> overlay.classList.remove("show"));
+
+/* ---------- Submit: Orçamento ---------- */
+formOrcamento.addEventListener("submit", async (e)=>{
+  e.preventDefault();
+
+  const placa = document.getElementById("orc_placa");
+  const filial = document.getElementById("orc_filial");
+  const tipo = document.getElementById("orc_tipo");
+  const fornecedor = document.getElementById("orc_fornecedor");
+  const numero = document.getElementById("orc_numero");
+  const valor = document.getElementById("orc_valor");
+  const data = document.getElementById("orc_data");
+  const foto = document.getElementById("orc_foto");
+  const obs = document.getElementById("orc_obs");
+
+  let valid = true;
+  [placa,filial,tipo,fornecedor].forEach(el=>{
+    const bad = !el.value;
+    markError(el, bad); if(bad) valid = false;
+  });
+  [numero, valor, data].forEach(el=>{
+    const bad = !el.value;
+    markError(el, bad); if(bad) valid = false;
+  });
+  const fotoBad = !foto.files[0];
+  markError(foto, fotoBad); if(fotoBad) valid = false;
+
+  if(!driver.name){
+    alert("Antes de enviar, toque em \"Editar\" no topo e informe seu nome.");
+    valid = false;
+  }
+  if(!valid) return;
+
+  if(SCRIPT_URL.indexOf("COLE_AQUI") !== -1){
+    alert("Configuração pendente: cole a URL do Apps Script no topo do arquivo (variável SCRIPT_URL).");
+    return;
+  }
+
+  showLoading("Enviando orçamento e foto...");
+
+  try{
+    const fotoBase64 = await fileToBase64(foto.files[0]);
+    const payload = {
+      tipo: "orcamento",
+      placa: placa.value,
+      filial: filial.value,
+      motorista: driver.name,
+      tipoManutencao: tipo.value,
+      fornecedor: fornecedor.value,
+      numeroOrcamento: numero.value.trim(),
+      valor: valor.value,
+      dataPrevisao: data.value,
+      observacoes: obs.value,
+      fotoNome: foto.files[0].name,
+      fotoTipo: foto.files[0].type || "application/octet-stream",
+      fotoBase64: fotoBase64
+    };
+
+    const resp = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    const result = await resp.json();
+
+    if(result.status === "ok"){
+      showSuccess("Orçamento enviado", "Registrado para a placa " + placa.value + ". Lembre-se de enviar o pós-serviço quando concluído.");
+      formOrcamento.reset();
+      document.querySelectorAll("#formOrcamento .photo-tile").forEach(t=>{
+        t.classList.remove("has-file");
+        t.querySelector(".ptxt").textContent = "Tocar para fotografar ou anexar";
+        t.querySelector("i").className = "ti ti-camera";
+      });
+      document.getElementById("orc_foto_preview").style.display = "none";
+    } else {
+      showError(result.message || "O servidor recusou o envio. Tente novamente.");
+    }
+  } catch(err){
+    showError("Falha de conexão. Verifique sua internet e tente novamente.");
+  }
+});
+
+/* ---------- Submit: Pós-Serviço ---------- */
+formPosServico.addEventListener("submit", async (e)=>{
+  e.preventDefault();
+
+  const numero = document.getElementById("pos_numero");
+  const placa = document.getElementById("pos_placa");
+  const data = document.getElementById("pos_data");
+  const valor = document.getElementById("pos_valor");
+  const nf = document.getElementById("pos_nf");
+  const ns = document.getElementById("pos_ns");
+  const obs = document.getElementById("pos_obs");
+
+  let valid = true;
+  [numero, placa, data, valor].forEach(el=>{
+    const bad = !el.value;
+    markError(el, bad); if(bad) valid = false;
+  });
+  const nfBad = !nf.files[0]; markError(nf, nfBad); if(nfBad) valid = false;
+  const nsBad = !ns.files[0]; markError(ns, nsBad); if(nsBad) valid = false;
+
+  if(!driver.name){
+    alert("Antes de enviar, toque em \"Editar\" no topo e informe seu nome.");
+    valid = false;
+  }
+  if(!valid) return;
+
+  if(SCRIPT_URL.indexOf("COLE_AQUI") !== -1){
+    alert("Configuração pendente: cole a URL do Apps Script no topo do arquivo (variável SCRIPT_URL).");
+    return;
+  }
+
+  showLoading("Enviando nota fiscal e nota de serviço...");
+
+  try{
+    const nfBase64 = await fileToBase64(nf.files[0]);
+    const nsBase64 = await fileToBase64(ns.files[0]);
+    const payload = {
+      tipo: "posServico",
+      numeroOrcamento: numero.value.trim(),
+      placa: placa.value,
+      motorista: driver.name,
+      dataConclusao: data.value,
+      valorFinal: valor.value,
+      observacoes: obs.value,
+      nfNome: nf.files[0].name,
+      nfTipo: nf.files[0].type || "application/octet-stream",
+      nfBase64: nfBase64,
+      nsNome: ns.files[0].name,
+      nsTipo: ns.files[0].type || "application/octet-stream",
+      nsBase64: nsBase64
+    };
+
+    const resp = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    const result = await resp.json();
+
+    if(result.status === "ok"){
+      showSuccess("Pós-serviço enviado", "Notas registradas para o orçamento " + numero.value + ".");
+      formPosServico.reset();
+      document.querySelectorAll("#formPosServico .photo-tile").forEach(t=>{
+        t.classList.remove("has-file");
+        t.querySelector(".ptxt").textContent = "Tocar para fotografar ou anexar";
+        t.querySelector("i").className = "ti ti-camera";
+      });
+      document.getElementById("pos_nf_preview").style.display = "none";
+      document.getElementById("pos_ns_preview").style.display = "none";
+    } else {
+      showError(result.message || "O servidor recusou o envio. Tente novamente.");
+    }
+  } catch(err){
+    showError("Falha de conexão. Verifique sua internet e tente novamente.");
+  }
+});
+</script>
+</body>
+</html>
