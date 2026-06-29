@@ -1,108 +1,139 @@
-<script>
-  // URL DO APP DA WEB ATUALIZADO COM O SEU LINK NOVO
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxrMqi_P7VWAzjch-BofPlJpQg6Ixd35ZDCJfVNX7IZVblWZEg1ZRwk74ovZTPvS83C/exec";
+// Substitua pelos IDs da sua Planilha e da sua Pasta no Google Drive
+const SPREADSHEET_ID = "SEU_ID_DA_PLANILHA_AQUI";
+const FOLDER_ID = "SEU_ID_DA_PASTA_DO_DRIVE_AQUI";
 
-  // Carrega as placas em tempo real vindas do cadastro do Drive
-  window.addEventListener("load", function() {
-    fetch(SCRIPT_URL)
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === "ok") {
-          const campoPlaca = document.getElementById("placa");
-          campoPlaca.innerHTML = '<option value="">Selecione a Placa...</option>';
-          data.placas.forEach(placa => {
-            let op = document.createElement("option");
-            op.value = placa;
-            op.textContent = placa;
-            campoPlaca.appendChild(op);
-          });
-        } else {
-          alert("Erro do sistema ao carregar os veículos: " + data.message);
-        }
-      })
-      .catch(err => console.error("Erro na comunicação:", err));
-  });
+/**
+ * Configuração para carregar as placas via GET (executada no carregamento da página)
+ */
+function doGet(e) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    // Presume-se que você tenha uma aba chamada "Placas" com a lista na coluna A
+    const sheetPlacas = ss.getSheetByName("Placas"); 
+    let listaPlacas = [];
 
-  function alternarCampos() {
-    const tipo = document.getElementById("tipo").value;
-    const secaoOrcamento = document.getElementById("secaoOrcamento");
-    const secaoPosServico = document.getElementById("secaoPosServico");
-    if (tipo === "orcamento") {
-      secaoOrcamento.style.display = "block";
-      secaoPosServico.style.display = "none";
-    } else {
-      secaoOrcamento.style.display = "none";
-      secaoPosServico.style.display = "block";
+    if (sheetPlacas) {
+      const valores = sheetPlacas.getRange(2, 1, sheetPlacas.getLastRow() - 1, 1).getValues();
+      listaPlacas = valores.map(linha => linha[0]).filter(String);
     }
-  }
 
-  function converterParaBase64(file) {
-    return new Promise((resolve, reject) => {
-      if (!file) resolve({ base64: "", nome: "", tipo: "" });
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const stringBase64 = reader.result.split(",")[1];
-        resolve({ base64: stringBase64, nome: file.name, tipo: file.type });
-      };
-      reader.onerror = error => reject(error);
-    });
-  }
+    // Caso a aba não exista ou esteja vazia, você pode retornar um fallback ou erro
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "ok",
+      placas: listaPlacas
+    })).setMimeType(ContentService.MimeType.JSON);
 
-  document.getElementById("formManutencao").addEventListener("submit", async function(e) {
-    e.preventDefault();
-    const btn = document.getElementById("btnEnviar");
-    const statusDiv = document.getElementById("mensagemStatus");
+  } catch (erro) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "erro",
+      message: "Erro ao buscar placas: " + erro.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Processa o envio dos dados do formulário (POST)
+ */
+function doPost(e) {
+  const lock = LockService.getScriptLock();
+  try {
+    // Evita concorrência de escritas simultâneas na planilha
+    lock.waitLock(10000); 
     
-    btn.disabled = true;
-    btn.innerText = "A enviar...";
-    statusDiv.style.color = "orange";
-    statusDiv.innerText = "A processar...";
-
-    try {
-      const tipo = document.getElementById("tipo").value;
-      let payload = {
-        tipo: tipo,
-        numeroOrcamento: document.getElementById("numeroOrcamento").value,
-        placa: document.getElementById("placa").value,
-        motorista: document.getElementById("motorista").value,
-        observacoes: document.getElementById("observacoes").value
-      };
-
-      if (tipo === "orcamento") {
-        payload.filial = document.getElementById("filial").value;
-        payload.tipoManutencao = document.getElementById("tipoManutencao").value;
-        payload.fornecedor = document.getElementById("fornecedor").value;
-        payload.valor = document.getElementById("valor").value;
-        payload.dataPrevisao = document.getElementById("dataPrevisao").value;
-        
-        const fotoData = await converterParaBase64(document.getElementById("foto").files[0]);
-        payload.fotoBase64 = fotoData.base64;
-        payload.fotoNome = fotoData.nome;
-        payload.fotoTipo = fotoData.tipo;
+    const dados = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    
+    // Define a aba de destino com base no tipo de lançamento
+    let nomeAba = dados.tipo === "orcamento" ? "Orçamentos" : "PosServico";
+    let sheet = ss.getSheetByName(nomeAba);
+    
+    // Se a aba não existir, cria automaticamente com os cabeçalhos
+    if (!sheet) {
+      sheet = ss.insertSheet(nomeAba);
+      if (dados.tipo === "orcamento") {
+        sheet.appendRow(["Data Registro", "Nº Orçamento", "Placa", "Motorista", "Filial", "Tipo Manutenção", "Fornecedor", "Valor Orçado", "Previsão Conclusão", "Link Foto/PDF", "Observações"]);
       } else {
-        payload.dataConclusao = document.getElementById("dataConclusao").value;
-        payload.valorFinal = document.getElementById("valorFinal").value;
-        
-        const nfData = await converterParaBase64(document.getElementById("nf").files[0]);
-        const nsData = await converterParaBase64(document.getElementById("ns").files[0]);
-        payload.nfBase64 = nfData.base64; payload.nfNome = nfData.nome; payload.nfTipo = nfData.tipo;
-        payload.nsBase64 = nsData.base64; payload.nsNome = nsData.nome; payload.nsTipo = nsData.tipo;
+        sheet.appendRow(["Data Registro", "Nº Orçamento", "Placa", "Motorista", "Data Conclusão", "Valor Final", "Link NF", "Link NS", "Observações"]);
       }
-
-      const response = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-      const resultado = await response.json();
-
-      if (resultado.status === "ok") {
-        statusDiv.style.color = "green"; statusDiv.innerText = resultado.message;
-        document.getElementById("formManutencao").reset(); alternarCampos();
-      } else {
-        statusDiv.style.color = "red"; statusDiv.innerText = "Erro: " + resultado.message;
-      }
-    } catch (err) {
-      statusDiv.style.color = "red"; statusDiv.innerText = "Erro: " + err.message;
-    } finally {
-      btn.disabled = false; btn.innerText = "Enviar Lançamento";
     }
-  });
-</script>
+
+    const dataAtual = new Date();
+    const pastaDestino = DriveApp.getFolderById(FOLDER_ID);
+
+    if (dados.tipo === "orcamento") {
+      // Processa arquivo do Orçamento se houver
+      let urlFoto = "";
+      if (dados.fotoBase64 && dados.fotoNome) {
+        urlFoto = salvarArquivoNoDrive(dados.fotoBase64, dados.fotoNome, dados.fotoTipo, pastaDestino);
+      }
+
+      // Adiciona linha na aba de Orçamentos
+      sheet.appendRow([
+        dataAtual,
+        dados.numeroOrcamento,
+        dados.placa,
+        dados.motorista,
+        dados.filial,
+        dados.tipoManutencao,
+        dados.fornecedor,
+        dados.valor ? parseFloat(dados.valor) : "",
+        dados.dataPrevisao,
+        urlFoto,
+        dados.observacoes
+      ]);
+
+    } else {
+      // Processa arquivos de Pós-Serviço (NF e NS) se houverem
+      let urlNF = "";
+      if (dados.nfBase64 && dados.nfNome) {
+        urlNF = salvarArquivoNoDrive(dados.nfBase64, dados.nfNome, dados.nfTipo, pastaDestino);
+      }
+
+      let urlNS = "";
+      if (dados.nsBase64 && dados.nsNome) {
+        urlNS = salvarArquivoNoDrive(dados.nsBase64, dados.nsNome, dados.nsTipo, pastaDestino);
+      }
+
+      // Adiciona linha na aba de Pós-Serviço
+      sheet.appendRow([
+        dataAtual,
+        dados.numeroOrcamento,
+        dados.placa,
+        dados.motorista,
+        dados.dataConclusao,
+        dados.valorFinal ? parseFloat(dados.valorFinal) : "",
+        urlNF,
+        urlNS,
+        dados.observacoes
+      ]);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "ok",
+      message: "Lançamento realizado com sucesso!"
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (erro) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "erro",
+      message: erro.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Função auxiliar para decodificar Base64 e salvar no Drive
+ */
+function salvarArquivoNoDrive(base64Data, nomeArquivo, tipoMime, pasta) {
+  const bytes = Utilities.base64Decode(base64Data);
+  const blob = Utilities.newBlob(bytes, tipoMime, nomeArquivo);
+  const arquivoCriado = pasta.createFile(blob);
+  
+  // Opcional: Define a permissão para que qualquer pessoa na empresa com o link possa ver o arquivo
+  arquivoCriado.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  
+  return arquivoCriado.getUrl();
+}
