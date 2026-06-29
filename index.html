@@ -1,153 +1,108 @@
-/* ============================================================
-   APPS SCRIPT — Frota Pirahy / Lançamentos de Manutenção
-   ============================================================
-   COMO USAR:
-   1. Abra sua planilha "Controle_Orcamentos_Manutencao_Frota" no
-      Google Sheets.
-   2. Menu Extensões > Apps Script.
-   3. Apague o conteúdo do arquivo Code.gs e cole TODO este código.
-   4. Clique em Implantar > Nova implantação > tipo "App da Web".
-      - Executar como: Eu
-      - Quem pode acessar: Qualquer pessoa
-   5. Copie a URL gerada e cole no arquivo index.html do app,
-      na variável SCRIPT_URL.
-   ============================================================ */
+<script>
+  // URL DO APP DA WEB ATUALIZADO COM O SEU LINK NOVO
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxrMqi_P7VWAzjch-BofPlJpQg6Ixd35ZDCJfVNX7IZVblWZEg1ZRwk74ovZTPvS83C/exec";
 
-// Nomes EXATOS das abas na planilha de destino
-const ABA_ORCAMENTOS = "Orçamentos";
-const ABA_POS_SERVICO = "Pós-Serviço";
+  // Carrega as placas em tempo real vindas do cadastro do Drive
+  window.addEventListener("load", function() {
+    fetch(SCRIPT_URL)
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "ok") {
+          const campoPlaca = document.getElementById("placa");
+          campoPlaca.innerHTML = '<option value="">Selecione a Placa...</option>';
+          data.placas.forEach(placa => {
+            let op = document.createElement("option");
+            op.value = placa;
+            op.textContent = placa;
+            campoPlaca.appendChild(op);
+          });
+        } else {
+          alert("Erro do sistema ao carregar os veículos: " + data.message);
+        }
+      })
+      .catch(err => console.error("Erro na comunicação:", err));
+  });
 
-// Nome da pasta no Google Drive onde as fotos serão salvas
-const PASTA_RAIZ = "Frota Pirahy - Anexos";
-
-// ID do seu arquivo de cadastro de veículos ativos (extraído do seu link)
-const ID_ARQUIVO_VEICULOS = "1fnPoNf_nZcjCvS-k0Tv-jmf8sxbnWjTN1_qob_3JEk4";
-
-// ============================================================
-// MÉTODO POST: Gravação de dados (Orçamentos e Pós-Serviço)
-// ============================================================
-function doPost(e) {
-  try {
-    const data = JSON.parse(e.postData.contents);
-
-    if (data.tipo === "orcamento") {
-      return registrarOrcamento(data);
-    } else if (data.tipo === "posServico") {
-      return registrarPosServico(data);
+  function alternarCampos() {
+    const tipo = document.getElementById("tipo").value;
+    const secaoOrcamento = document.getElementById("secaoOrcamento");
+    const secaoPosServico = document.getElementById("secaoPosServico");
+    if (tipo === "orcamento") {
+      secaoOrcamento.style.display = "block";
+      secaoPosServico.style.display = "none";
     } else {
-      return resposta("erro", "Tipo de lançamento não reconhecido.");
-    }
-  } catch (err) {
-    return resposta("erro", "Erro no servidor: " + err.message);
-  }
-}
-
-function registrarOrcamento(data) {
-  const planilha = SpreadsheetApp.openByUrl("https://docs.google.com/spreadsheets/d/" + ID_ARQUIVO_VEICULOS + "/edit");
-  const aba = planilha.getSheetByName(ABA_ORCAMENTOS);
-  if (!aba) return resposta("erro", "Aba 'Orçamentos' não encontrada na planilha.");
-
-  const linkFoto = salvarArquivo(data.fotoBase64, data.fotoNome, data.fotoTipo, data.placa, "orcamento_" + data.numeroOrcamento);
-
-  const novaLinha = encontrarPrimeiraLinhaVazia(aba, 11);
-
-  aba.getRange(novaLinha, 1, 1, 11).setValues([[
-    new Date(),
-    data.numeroOrcamento,
-    data.placa,
-    data.filial,
-    data.motorista,
-    data.tipoManutencao,
-    data.fornecedor,
-    parseFloat(data.valor) || 0,
-    data.dataPrevisao,
-    linkFoto,
-    data.observacoes || ""
-  ]]);
-
-  return resposta("ok", "Orçamento registrado com sucesso.");
-}
-
-function registrarPosServico(data) {
-  const planilha = SpreadsheetApp.openByUrl("https://docs.google.com/spreadsheets/d/" + ID_ARQUIVO_VEICULOS + "/edit");
-  const aba = planilha.getSheetByName(ABA_POS_SERVICO);
-  if (!aba) return resposta("erro", "Aba 'Pós-Serviço' não encontrada na planilha.");
-
-  const linkNF = salvarArquivo(data.nfBase64, data.nfNome, data.nfTipo, data.placa, "NF_" + data.numeroOrcamento);
-  const linkNS = salvarArquivo(data.nsBase64, data.nsNome, data.nsTipo, data.placa, "NS_" + data.numeroOrcamento);
-
-  const novaLinha = encontrarPrimeiraLinhaVazia(aba, 9);
-
-  aba.getRange(novaLinha, 1, 1, 9).setValues([[
-    new Date(),
-    data.numeroOrcamento,
-    data.placa,
-    data.motorista,
-    data.dataConclusao,
-    linkNF,
-    linkNS,
-    parseFloat(data.valorFinal) || 0,
-    data.observacoes || ""
-  ]]);
-
-  return resposta("ok", "Pós-serviço registrado com sucesso.");
-}
-
-// Acha a primeira linha vazia na coluna B, a partir da linha 5
-function encontrarPrimeiraLinhaVazia(aba, numColunas) {
-  const colunaChave = aba.getRange(5, 2, aba.getMaxRows() - 4, 1).getValues();
-  for (let i = 0; i < colunaChave.length; i++) {
-    if (colunaChave[i][0] === "" || colunaChave[i][0] === null) {
-      return 5 + i;
+      secaoOrcamento.style.display = "none";
+      secaoPosServico.style.display = "block";
     }
   }
-  return aba.getMaxRows() + 1;
-}
 
-// Salva o arquivo no Drive dentro de subpastas por placa
-function salvarArquivo(base64, nomeOriginal, tipoMime, placa, prefixo) {
-  if (!base64) return "";
+  function converterParaBase64(file) {
+    return new Promise((resolve, reject) => {
+      if (!file) resolve({ base64: "", nome: "", tipo: "" });
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const stringBase64 = reader.result.split(",")[1];
+        resolve({ base64: stringBase64, nome: file.name, tipo: file.type });
+      };
+      reader.onerror = error => reject(error);
+    });
+  }
 
-  const pastaRaiz = obterOuCriarPasta(PASTA_RAIZ);
-  const pastaPlaca = obterOuCriarSubpasta(pastaRaiz, placa || "Sem-Placa");
+  document.getElementById("formManutencao").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById("btnEnviar");
+    const statusDiv = document.getElementById("mensagemStatus");
+    
+    btn.disabled = true;
+    btn.innerText = "A enviar...";
+    statusDiv.style.color = "orange";
+    statusDiv.innerText = "A processar...";
 
-  const bytes = Utilities.base64Decode(base64);
-  const extensao = nomeOriginal && nomeOriginal.indexOf(".") !== -1
-    ? nomeOriginal.substring(nomeOriginal.lastIndexOf("."))
-    : "";
-  const carimbo = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
-  const nomeFinal = prefixo + "_" + carimbo + extensao;
+    try {
+      const tipo = document.getElementById("tipo").value;
+      let payload = {
+        tipo: tipo,
+        numeroOrcamento: document.getElementById("numeroOrcamento").value,
+        placa: document.getElementById("placa").value,
+        motorista: document.getElementById("motorista").value,
+        observacoes: document.getElementById("observacoes").value
+      };
 
-  const blob = Utilities.newBlob(bytes, tipoMime || "application/octet-stream", nomeFinal);
-  const arquivo = pastaPlaca.createFile(blob);
-  arquivo.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      if (tipo === "orcamento") {
+        payload.filial = document.getElementById("filial").value;
+        payload.tipoManutencao = document.getElementById("tipoManutencao").value;
+        payload.fornecedor = document.getElementById("fornecedor").value;
+        payload.valor = document.getElementById("valor").value;
+        payload.dataPrevisao = document.getElementById("dataPrevisao").value;
+        
+        const fotoData = await converterParaBase64(document.getElementById("foto").files[0]);
+        payload.fotoBase64 = fotoData.base64;
+        payload.fotoNome = fotoData.nome;
+        payload.fotoTipo = fotoData.tipo;
+      } else {
+        payload.dataConclusao = document.getElementById("dataConclusao").value;
+        payload.valorFinal = document.getElementById("valorFinal").value;
+        
+        const nfData = await converterParaBase64(document.getElementById("nf").files[0]);
+        const nsData = await converterParaBase64(document.getElementById("ns").files[0]);
+        payload.nfBase64 = nfData.base64; payload.nfNome = nfData.nome; payload.nfTipo = nfData.tipo;
+        payload.nsBase64 = nsData.base64; payload.nsNome = nsData.nome; payload.nsTipo = nsData.tipo;
+      }
 
-  return arquivo.getUrl();
-}
+      const response = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+      const resultado = await response.json();
 
-function obterOuCriarPasta(nome) {
-  const pastas = DriveApp.getFoldersByName(nome);
-  if (pastas.hasNext()) return pastas.next();
-  return DriveApp.createFolder(nome);
-}
-
-function obterOuCriarSubpasta(pastaPai, nome) {
-  const pastas = pastaPai.getFoldersByName(nome);
-  if (pastas.hasNext()) return pastas.next();
-  return pastaPai.createFolder(nome);
-}
-
-function resposta(status, mensagem) {
-  return ContentService
-    .createTextOutput(JSON.stringify({ status: status, message: mensagem }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-// ============================================================
-// MÉTODO GET: Consulta de Placas Ativas para o GitHub / HTML
-// ============================================================
-function doGet(e) {
-  try {
-    const planilhaVeiculos = SpreadsheetApp.openById(ID_ARQUIVO_VEICULOS);
-    const aba = planilhaVeiculos.getSheetByName("Cadastros") || planilhaVeiculos.getSheets()[0]; 
-    if (!aba) return respostaJSON("erro",
+      if (resultado.status === "ok") {
+        statusDiv.style.color = "green"; statusDiv.innerText = resultado.message;
+        document.getElementById("formManutencao").reset(); alternarCampos();
+      } else {
+        statusDiv.style.color = "red"; statusDiv.innerText = "Erro: " + resultado.message;
+      }
+    } catch (err) {
+      statusDiv.style.color = "red"; statusDiv.innerText = "Erro: " + err.message;
+    } finally {
+      btn.disabled = false; btn.innerText = "Enviar Lançamento";
+    }
+  });
+</script>
